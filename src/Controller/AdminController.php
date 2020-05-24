@@ -12,6 +12,12 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Workflow\Registry;
 use Twig\Environment;
+use Symfony\Bundle\FrameworkBundle\HttpCache\HttpCache;
+use Symfony\Component\HttpKernel\KernelInterface;
+
+    /**
+    * @Route("/admin")
+    */
 
 class AdminController extends AbstractController
 {
@@ -27,7 +33,7 @@ class AdminController extends AbstractController
         $this->bus = $bus;
     }
     /**
-     * @Route("/admin/comment/review/{id}", name="review_comment")
+     * @Route("/comment/review/{id}", name="review_comment")
      */
     public function reviewComment(Request $request, Comment $comment, Registry $registry)
     {
@@ -52,5 +58,17 @@ class AdminController extends AbstractController
             'transition' => $transition,
             'comment' => $comment,
             ]);
+    }
+    /**
+    * @Route("/http-cache/{uri<.*>}", methods={"PURGE"})
+    */
+    public function purgeHttpCache(KernelInterface $kernel, Request $request, string $uri)
+    {
+        if ('prod' === $kernel->getEnvironment()) {
+            return new Response('KO', 400);
+        }
+        $store = (new class($kernel) extends HttpCache {})->getStore();
+        $store->purge($request->getSchemeAndHttpHost().'/'.$uri);
+        return new Response('Done');
     }
 }
